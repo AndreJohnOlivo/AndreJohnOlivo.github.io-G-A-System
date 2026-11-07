@@ -253,10 +253,28 @@ async function createAuditLog(user, action, target, previous, changes) {
 }
 
 async function getStudentByIdentifier(identifier) {
-  return mongoDb.collection('students').findOne({
-    $or: [{ _id: ObjectId.isValid(identifier) ? new ObjectId(identifier) : null }, { studentId: identifier }]
+  // Convert identifier to a string for standard lookups
+  const searchStr = String(identifier || '').trim();
+  
+  // Try to parse it as an integer to catch numeric database lookups
+  const searchNum = parseInt(searchStr, 10);
+
+  const student = await mongoDb.collection('students').findOne({
+    $or: [
+      { _id: ObjectId.isValid(searchStr) ? new ObjectId(searchStr) : null },
+      { studentId: searchStr },
+      { studentId: isNaN(searchNum) ? null : searchNum } // Matches the blue numeric keys in Atlas
+    ]
   });
+
+  if (student && !student.name) {
+    // Reconstruct the full name cleanly so the website dashboard functions properly
+    student.name = `${student.firstName} ${student.lastName}`.trim();
+  }
+  
+  return student;
 }
+
 
 // Utility: send JSON
 function sendJson(res, statusCode, payload) {
