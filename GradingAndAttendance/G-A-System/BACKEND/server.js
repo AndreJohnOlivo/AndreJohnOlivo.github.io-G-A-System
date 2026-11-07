@@ -55,6 +55,8 @@ async function copyAndRemove(sourceName, targetName, filter = {}) {
   await source.deleteMany({ _id: { $in: documents.map((document) => document._id) } });
 }
 
+// Remove the old copyAndRemove function entirely, and use this fixed logic block:
+
 async function migrateStudentCollections() {
   try {
     const collections = await mongoDb.listCollections().toArray();
@@ -83,9 +85,37 @@ async function migrateStudentCollections() {
       console.log('Migration complete. studentRecords dropped cleanly.');
     }
   } catch (migrationError) {
-    console.error('Cloud migration step warning:', migrationError.message);
+    console.warn('Cloud migration step warning:', migrationError.message);
   }
 }
+
+async function connectToMongo(uri) {
+  try {
+    mongoClient = new MongoClient(uri);
+    await mongoClient.connect();
+    
+    // Explicit fallback to match the exact database name you provided in your terminal command
+    mongoDb = mongoClient.db(process.env.MONGO_DB_NAME || 'UCC_G&A');
+    
+    await Promise.all([
+      mongoDb.collection('users').createIndex({ username: 1 }, { unique: true }),
+      mongoDb.collection('students').createIndex({ studentId: 1 }, { unique: true, sparse: true }),
+      mongoDb.collection('attendance_logs').createIndex({ studentId: 1, subject: 1, date: 1 }, { unique: true }),
+      mongoDb.collection('grade_records').createIndex({ studentId: 1, subject: 1, term: 1 }, { unique: true }),
+      mongoDb.collection('audit_logs').createIndex({ createdAt: -1 })
+    ]);
+    
+    await seedProgramHeadAccount();
+    await migrateStudentCollections();
+    useMongo = true;
+    console.log('Connected to MongoDB and prepared user accounts and student records');
+  } catch (err) {
+    console.error('MongoDB connection failed strictly:', err.message);
+    useMongo = false;
+    process.exit(1); // Forces an informative log output if your URI string is still broken
+  }
+}
+
 
 
 // JWT helpers
