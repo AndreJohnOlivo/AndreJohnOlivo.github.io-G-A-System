@@ -56,31 +56,37 @@ async function copyAndRemove(sourceName, targetName, filter = {}) {
 }
 
 async function migrateStudentCollections() {
-  await copyAndRemove('students', 'student_logins', { password: { $exists: true } });
-  await copyAndRemove('studentRecords', 'students');
-}
-
-async function connectToMongo(uri) {
   try {
-    mongoClient = new MongoClient(uri);
-    await mongoClient.connect();
-    mongoDb = mongoClient.db(process.env.MONGO_DB_NAME || 'UCC_G&A_DB');
-    await Promise.all([
-      mongoDb.collection('users').createIndex({ username: 1 }, { unique: true }),
-      mongoDb.collection('students').createIndex({ studentId: 1 }, { unique: true, sparse: true }),
-      mongoDb.collection('attendance_logs').createIndex({ studentId: 1, subject: 1, date: 1 }, { unique: true }),
-      mongoDb.collection('grade_records').createIndex({ studentId: 1, subject: 1, term: 1 }, { unique: true }),
-      mongoDb.collection('audit_logs').createIndex({ createdAt: -1 })
-    ]);
-    await seedProgramHeadAccount();
-    await migrateStudentCollections();
-    useMongo = true;
-    console.log('Connected to MongoDB and prepared user accounts and student records');
-  } catch (err) {
-    console.warn('MongoDB connection failed, fallback to memory:', err.message);
-    useMongo = false;
+    const collections = await mongoDb.listCollections().toArray();
+    const collectionNames = collections.map(c => c.name);
+
+    // 1. Move login credentials to student_logins natively in the cloud
+    if (collectionNames.includes('students')) {
+      await mongoDb.collection('students').aggregate([
+        { $match: { password: { $exists: true } } },
+        { $merge: { into: 'student_logins', on: '_id', whenMatched: 'replace', whenNotMatched: 'insert' } }
+      ]).toArray();
+      
+      // Clean up the logins out of the core records collection
+      await mongoDb.collection('students').deleteMany({ password: { $exists: true } });
+    }
+
+    // 2. Safely merge imported studentRecords into the active students collection
+    if (collectionNames.includes('studentRecords')) {
+      console.log('Merging imported studentRecords collection natively in Atlas...');
+      await mongoDb.collection('studentRecords').aggregate([
+        { $merge: { into: 'students', on: '_id', whenMatched: 'replace', whenNotMatched: 'insert' } }
+      ]).toArray();
+
+      // Drop the temporary staging collection now that it's safe in 'students'
+      await mongoDb.collection('studentRecords').drop();
+      console.log('Migration complete. studentRecords dropped cleanly.');
+    }
+  } catch (migrationError) {
+    console.error('Cloud migration step warning:', migrationError.message);
   }
 }
+
 
 // JWT helpers
 function generateToken(user) {
