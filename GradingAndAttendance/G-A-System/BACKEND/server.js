@@ -446,8 +446,8 @@ const server = http.createServer(async (req, res) => {
         });
         if (student && student.password && await bcryptjs.compare(submittedPassword, student.password)) {
           const studentRole = student.role || 'Student';
-          const academicStudent = student.name ? null : await getStudentByIdentifier(student.studentId);
-          const name = getDisplayName(student, academicStudent?.name || student.username);
+          const academicStudent = await getStudentByIdentifier(student.studentId);
+          const name = getDisplayName(academicStudent || student, student.username);
           const token = generateToken({ username: student.username, role: studentRole, name });
           return sendAuthenticatedJson(res, 200, {
             success: true,
@@ -910,10 +910,14 @@ const server = http.createServer(async (req, res) => {
 
     let session = user;
     if (useMongo && mongoDb) {
-      const account = requireRole(session, 'Student')
+      const isStudent = requireRole(session, 'Student');
+      const account = isStudent
         ? await mongoDb.collection('student_logins').findOne({ username: session.username })
         : await mongoDb.collection('users').findOne({ username: session.username });
-      const name = getDisplayName(account, session.username);
+      const academicStudent = isStudent && account?.studentId
+        ? await getStudentByIdentifier(account.studentId)
+        : null;
+      const name = getDisplayName(academicStudent || account, session.username);
       session = { ...session, name };
     }
     return sendJson(res, 200, { success: true, session });
