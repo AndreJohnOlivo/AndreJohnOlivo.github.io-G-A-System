@@ -9,12 +9,12 @@
     const roles = requiredRoles[window.location.pathname];
     if (!roles) return;
 
-    function showAccessDenied(role) {
+    function showAccessDenied() {
         const render = () => {
             document.querySelectorAll('.app-shell').forEach((element) => { element.classList.add('hidden'); });
             const notice = document.createElement('main');
             notice.className = 'auth-shell access-denied-shell';
-            notice.innerHTML = `<div class="auth-card access-denied-card"><div class="access-denied-mark" aria-hidden="true">!</div><p class="eyebrow">Restricted workspace</p><h1>Program Head access only</h1><p class="auth-intro">You are signed in as ${role || 'a different role'}. This area is reserved for managing student and faculty records.</p><a class="btn btn-primary" href="index.html">Return to Dashboard</a></div>`;
+            notice.innerHTML = '<div class="auth-card access-denied-card"><div class="access-denied-mark" aria-hidden="true">!</div><p class="eyebrow">Restricted workspace</p><h1>Page unavailable</h1><a class="btn btn-primary" href="index.html">Return to Dashboard</a></div>';
             document.body.appendChild(notice);
         };
         if (document.body) render();
