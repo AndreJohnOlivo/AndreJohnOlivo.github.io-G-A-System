@@ -191,6 +191,22 @@ function asText(value) {
   return String(value || '').trim();
 }
 
+function getDisplayName(account, fallback = '') {
+  const directName = [account?.name, account?.fullName, account?.displayName]
+    .map(asText)
+    .find(Boolean);
+  if (directName) return directName;
+
+  const parts = [account?.firstName, account?.middleName, account?.lastName]
+    .map(asText)
+    .filter(Boolean);
+  if (parts.length) return parts.join(' ');
+
+  return asText(fallback)
+    .replace(/[._-]+/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -417,8 +433,9 @@ const server = http.createServer(async (req, res) => {
               : 'This account is inactive. Contact the Program Head for assistance.';
             return sendJson(res, 403, { success: false, message });
           }
-          const token = generateToken({ username: user.username, role: user.role, name: user.name });
-          return sendAuthenticatedJson(res, 200, { success: true, role: user.role, name: user.name, token }, token);
+          const name = getDisplayName(user, user.username);
+          const token = generateToken({ username: user.username, role: user.role, name });
+          return sendAuthenticatedJson(res, 200, { success: true, role: user.role, name, token }, token);
         }
 
         const student = await mongoDb.collection('student_logins').findOne({
@@ -429,13 +446,15 @@ const server = http.createServer(async (req, res) => {
         });
         if (student && student.password && await bcryptjs.compare(submittedPassword, student.password)) {
           const studentRole = student.role || 'Student';
-          const token = generateToken({ username: student.username, role: studentRole, name: student.name });
+          const academicStudent = student.name ? null : await getStudentByIdentifier(student.studentId);
+          const name = getDisplayName(student, academicStudent?.name || student.username);
+          const token = generateToken({ username: student.username, role: studentRole, name });
           return sendAuthenticatedJson(res, 200, {
             success: true,
             role: studentRole,
-            name: student.name,
+            name,
             token,
-            student: { name: student.name }
+            student: { name }
           }, token);
         }
         return sendJson(res, 401, { success: false, message: 'Invalid username or password.' });
@@ -892,9 +911,10 @@ const server = http.createServer(async (req, res) => {
     let session = user;
     if (useMongo && mongoDb) {
       const account = requireRole(session, 'Student')
-        ? await mongoDb.collection('student_logins').findOne({ username: session.username }, { projection: { name: 1 } })
-        : await mongoDb.collection('users').findOne({ username: session.username }, { projection: { name: 1 } });
-      if (account?.name) session = { ...session, name: account.name };
+        ? await mongoDb.collection('student_logins').findOne({ username: session.username })
+        : await mongoDb.collection('users').findOne({ username: session.username });
+      const name = getDisplayName(account, session.username);
+      session = { ...session, name };
     }
     return sendJson(res, 200, { success: true, session });
   }
