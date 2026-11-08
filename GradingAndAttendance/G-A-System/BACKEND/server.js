@@ -112,7 +112,8 @@ async function connectToMongo(uri) {
     await seedProgramHeadAccount();
     await migrateStudentCollections();
     useMongo = true;
-    console.log('Connected to MongoDB and prepared user accounts and student records');
+    const studentCount = await mongoDb.collection('students').countDocuments();
+    console.log(`Connected to MongoDB database "${mongoDb.databaseName}" with ${studentCount} student record(s)`);
   } catch (err) {
     console.error('MongoDB connection failed strictly:', err.message);
     useMongo = false;
@@ -270,21 +271,35 @@ async function createAuditLog(user, action, target, previous, changes) {
 
 async function getStudentByIdentifier(identifier) {
   const searchStr = String(identifier || '').trim();
+  if (!searchStr) return null;
+
   const searchNum = /^-?\d+$/.test(searchStr) ? Number(searchStr) : null;
-  const studentIdPattern = searchStr ? new RegExp(`^${escapeRegExp(searchStr)}$`, 'i') : null;
-
-  const student = await mongoDb.collection('students').findOne({
-    $or: [
-      { _id: ObjectId.isValid(searchStr) ? new ObjectId(searchStr) : null },
-      { studentId: studentIdPattern },
-      { studentId: searchNum }
-    ]
-  });
-
-  if (student && !student.name) {
-    student.name = `${student.firstName} ${student.lastName}`.trim();
+  const studentIdPattern = new RegExp(`^${escapeRegExp(searchStr)}$`, 'i');
+  const identifierFields = ['studentId', 'studentID', 'student_id', 'studentNumber'];
+  const identifierFilters = identifierFields.map((field) => ({ [field]: studentIdPattern }));
+  if (searchNum !== null) {
+    identifierFilters.push(...identifierFields.map((field) => ({ [field]: searchNum })));
+  }
+  if (ObjectId.isValid(searchStr)) {
+    identifierFilters.push({ _id: new ObjectId(searchStr) });
   }
 
+  const student = await mongoDb.collection('students').findOne({
+    $or: identifierFilters
+  });
+
+  if (!student) return null;
+
+  if (!student.studentId) {
+    const storedIdentifier = identifierFields
+      .map((field) => student[field])
+      .find((value) => value !== undefined && value !== null && String(value).trim());
+    if (storedIdentifier !== undefined) student.studentId = String(storedIdentifier).trim();
+  } else {
+    student.studentId = String(student.studentId).trim();
+  }
+
+  if (!student.name) student.name = `${student.firstName || ''} ${student.lastName || ''}`.trim();
   return student;
 }
 
@@ -616,7 +631,7 @@ const server = http.createServer(async (req, res) => {
     const login = await mongoDb.collection('student_logins').findOne({ username: user.username });
     if (!login) return sendJson(res, 404, { success: false, message: 'Student account not found.' });
     const [student, attendance, grades] = await Promise.all([
-      mongoDb.collection('students').findOne({ studentId: login.studentId }),
+      getStudentByIdentifier(login.studentId),
       mongoDb.collection('attendance_logs').find({ studentId: login.studentId }).sort({ date: -1 }).toArray(),
       mongoDb.collection('grade_records').find({ studentId: login.studentId }).sort({ updatedAt: -1 }).toArray()
     ]);
