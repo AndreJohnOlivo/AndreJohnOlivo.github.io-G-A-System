@@ -321,6 +321,14 @@ const contentTypes = {
   '.ico': 'image/x-icon'
 };
 
+const protectedPages = {
+  '/attendance.html': ['Program Head', 'Faculty'],
+  '/grades.html': ['Program Head', 'Faculty'],
+  '/reports.html': ['Program Head', 'Faculty'],
+  '/students.html': ['Program Head'],
+  '/faculty.html': ['Program Head']
+};
+
 function serveStaticFile(res, requestPath) {
   const normalizedPath = requestPath === '/' ? '/index.html' : requestPath;
   const filePath = getStaticFile(normalizedPath.replace(/^\//, ''));
@@ -853,6 +861,18 @@ const server = http.createServer(async (req, res) => {
       'Set-Cookie': 'ucc_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'
     });
     return res.end();
+  }
+
+  if (protectedPages[url.pathname]) {
+    const user = authenticateToken(req);
+    if (!user) {
+      res.writeHead(302, { Location: '/index.html?message=Please%20sign%20in%20to%20continue.' });
+      return res.end();
+    }
+    if (!protectedPages[url.pathname].some((role) => requireRole(user, role))) {
+      res.writeHead(302, { Location: '/index.html?access=restricted' });
+      return res.end();
+    }
   }
 
   // Default: serve static
