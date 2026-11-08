@@ -68,7 +68,7 @@ async function migrateStudentCollections() {
         { $match: { password: { $exists: true } } },
         { $merge: { into: 'student_logins', on: '_id', whenMatched: 'replace', whenNotMatched: 'insert' } }
       ]).toArray();
-      
+
       // Clean up the logins out of the core records collection
       await mongoDb.collection('students').deleteMany({ password: { $exists: true } });
     }
@@ -93,10 +93,10 @@ async function connectToMongo(uri) {
   try {
     mongoClient = new MongoClient(uri);
     await mongoClient.connect();
-    
+
     // Explicit fallback to match the exact database name you provided in your terminal command
     mongoDb = mongoClient.db(process.env.MONGO_DB_NAME || 'UCC_G&A');
-    
+
     await Promise.all([
       mongoDb.collection('users').createIndex({ username: 1 }, { unique: true }),
       mongoDb.collection('students').createIndex({ studentId: 1 }, { unique: true, sparse: true }),
@@ -104,7 +104,7 @@ async function connectToMongo(uri) {
       mongoDb.collection('grade_records').createIndex({ studentId: 1, subject: 1, term: 1 }, { unique: true }),
       mongoDb.collection('audit_logs').createIndex({ createdAt: -1 })
     ]);
-    
+
     await seedProgramHeadAccount();
     await migrateStudentCollections();
     useMongo = true;
@@ -267,7 +267,7 @@ async function getStudentByIdentifier(identifier) {
   if (student && !student.name) {
     student.name = `${student.firstName} ${student.lastName}`.trim();
   } // <--- Closes IF statement
-  
+
   return student;
 } // <--- Closes the entire ASYNC FUNCTION
 
@@ -871,7 +871,7 @@ async function closeMongo() {
 
 // Start server
 if (require.main === module) {
-  const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/ucc_backend_db';
+  const mongoUri = process.env.MONGO_URI || 'mongodb+srv://AndreOlivo:Andreadmin1!@ucccluster1.ehpczmj.mongodb.net/';
   connectToMongo(mongoUri).finally(() => {
     server.listen(port, () => console.log(`Server running at http://localhost:${port}`));
   });
