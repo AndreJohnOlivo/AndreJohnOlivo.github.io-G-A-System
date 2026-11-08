@@ -6,7 +6,7 @@
     <title>Grading and Attendance System</title>
     <link rel="stylesheet" href="style.css" />
   </head>
-  <body>
+  <body class="auth-checking">
     <div id="login-screen" class="auth-shell">
       <div class="auth-card">
         <p class="eyebrow">UCC Academic Portal</p>
@@ -487,6 +487,7 @@
       }
 
       function showDashboard() {
+        document.body.classList.remove('auth-checking');
         loginScreen.classList.add('hidden');
         dashboardShell.classList.remove('hidden');
         const role = sessionStorage.getItem('uccAccessRole');
@@ -512,6 +513,7 @@
       }, 5000);
 
       function showLogin(message = '') {
+        document.body.classList.remove('auth-checking');
         dashboardShell.classList.add('hidden');
         loginScreen.classList.remove('hidden');
         if (message) {
