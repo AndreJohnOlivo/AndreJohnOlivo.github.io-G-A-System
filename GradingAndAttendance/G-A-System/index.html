@@ -523,6 +523,16 @@
         }
       }
 
+      function showAccessDenied(role) {
+        document.body.classList.remove('auth-checking');
+        loginScreen.classList.add('hidden');
+        dashboardShell.classList.add('hidden');
+        const notice = document.createElement('main');
+        notice.className = 'auth-shell access-denied-shell';
+        notice.innerHTML = `<div class="auth-card access-denied-card"><div class="access-denied-mark" aria-hidden="true">!</div><p class="eyebrow">Restricted workspace</p><h1>Program Head access only</h1><p class="auth-intro">You are signed in as ${role || 'a different role'}. This area is reserved for managing student and faculty records.</p><a class="btn btn-primary" href="index.html">Return to Dashboard</a></div>`;
+        document.body.appendChild(notice);
+      }
+
       async function restoreSession() {
         const params = new URLSearchParams(window.location.search);
         const message = params.get('message');
@@ -533,6 +543,10 @@
           const result = await response.json();
           if (response.ok && result.session) {
             sessionStorage.setItem('uccAccessRole', result.session.role);
+            if (params.get('access') === 'restricted') {
+              showAccessDenied(result.session.role);
+              return;
+            }
             window.dispatchEvent(new Event('ucc:session-start'));
             showDashboard();
             return;
