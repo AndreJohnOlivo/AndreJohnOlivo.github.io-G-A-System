@@ -87,7 +87,7 @@
         <header class="topbar">
           <div>
             <p class="eyebrow">University Academic Administration</p>
-            <h1>Student Performance Dashboard</h1>
+            <h1 id="staff-welcome-name">Welcome</h1>
             <p class="topbar-subtitle">Integrated monitoring for attendance, grading, and academic records.</p>
           </div>
           <div class="topbar-actions">
@@ -310,6 +310,7 @@
       const studentDashboardContent = document.getElementById('student-dashboard-content');
       const exportReportBtn = document.getElementById('export-report-btn');
       const activityList = document.getElementById('activity-list');
+      const staffWelcomeName = document.getElementById('staff-welcome-name');
       const studentWelcomeName = document.getElementById('student-welcome-name');
       const studentRecordsBody = document.getElementById('student-records-body');
       const myAttendanceBody = document.getElementById('my-attendance-body');
@@ -437,8 +438,12 @@
         }
 
         if (studentWelcomeName) {
-          const studentName = sessionStorage.getItem('currentStudentName') || 'Student';
+          const studentName = sessionStorage.getItem('currentUserName') || sessionStorage.getItem('currentStudentName') || 'Welcome';
           studentWelcomeName.textContent = `Welcome, ${studentName}`;
+        }
+        if (staffWelcomeName) {
+          const userName = sessionStorage.getItem('currentUserName') || 'Welcome';
+          staffWelcomeName.textContent = `Welcome, ${userName}`;
         }
 
         if (isStaffRole && !isStudent) {
@@ -539,6 +544,9 @@
           const result = await response.json();
           if (response.ok && result.session) {
             sessionStorage.setItem('uccAccessRole', result.session.role);
+            if (result.session.name) {
+              sessionStorage.setItem('currentUserName', result.session.name);
+            }
             if (params.get('access') === 'restricted') {
               showAccessDenied(result.session.role);
               return;
@@ -598,9 +606,12 @@
 
           sessionStorage.setItem('uccAccessRole', result.role);
           sessionStorage.setItem('uccAccessToken', result.token);
-          if (result.student?.name) {
-            sessionStorage.setItem('currentStudentName', result.student.name);
+          const loginName = result.name || result.student?.name;
+          if (loginName) {
+            sessionStorage.setItem('currentUserName', loginName);
+            sessionStorage.setItem('currentStudentName', loginName);
           } else {
+            sessionStorage.removeItem('currentUserName');
             sessionStorage.removeItem('currentStudentName');
           }
           window.dispatchEvent(new Event('ucc:session-start'));
@@ -609,6 +620,7 @@
           console.error('Login error:', error);
           sessionStorage.removeItem('uccAccessRole');
           sessionStorage.removeItem('uccAccessToken');
+          sessionStorage.removeItem('currentUserName');
           authMessage.textContent = 'Unable to connect to the server.';
         }
       });
@@ -633,7 +645,8 @@
           if (result.role === 'Student') {
             sessionStorage.setItem('uccAccessRole', result.role);
             sessionStorage.setItem('uccAccessToken', result.token);
-            sessionStorage.setItem('currentStudentName', result.student.name);
+            sessionStorage.setItem('currentUserName', result.name || result.student.name);
+            sessionStorage.setItem('currentStudentName', result.name || result.student.name);
             window.dispatchEvent(new Event('ucc:session-start'));
             showDashboard();
             return;
@@ -695,6 +708,7 @@
         }
         sessionStorage.removeItem('uccAccessRole');
         sessionStorage.removeItem('uccAccessToken');
+        sessionStorage.removeItem('currentUserName');
         sessionStorage.removeItem('currentStudentName');
         showLogin('You have been logged out.');
       }
