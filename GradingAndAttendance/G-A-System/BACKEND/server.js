@@ -890,7 +890,7 @@ const server = http.createServer(async (req, res) => {
     if (!user) return sendJson(res, 200, { success: true, session: null });
 
     let session = user;
-    if (!session.name && useMongo && mongoDb) {
+    if (useMongo && mongoDb) {
       const account = requireRole(session, 'Student')
         ? await mongoDb.collection('student_logins').findOne({ username: session.username }, { projection: { name: 1 } })
         : await mongoDb.collection('users').findOne({ username: session.username }, { projection: { name: 1 } });
