@@ -126,7 +126,7 @@ async function connectToMongo(uri) {
 // JWT helpers
 function generateToken(user) {
   return jwt.sign(
-    { username: user.username, role: user.role },
+    { username: user.username, role: user.role, name: user.name || null },
     JWT_SECRET,
     { expiresIn: '4h' }
   );
@@ -417,8 +417,8 @@ const server = http.createServer(async (req, res) => {
               : 'This account is inactive. Contact the Program Head for assistance.';
             return sendJson(res, 403, { success: false, message });
           }
-          const token = generateToken({ username: user.username, role: user.role });
-          return sendAuthenticatedJson(res, 200, { success: true, role: user.role, token }, token);
+          const token = generateToken({ username: user.username, role: user.role, name: user.name });
+          return sendAuthenticatedJson(res, 200, { success: true, role: user.role, name: user.name, token }, token);
         }
 
         const student = await mongoDb.collection('student_logins').findOne({
@@ -429,10 +429,11 @@ const server = http.createServer(async (req, res) => {
         });
         if (student && student.password && await bcryptjs.compare(submittedPassword, student.password)) {
           const studentRole = student.role || 'Student';
-          const token = generateToken({ username: student.username, role: studentRole });
+          const token = generateToken({ username: student.username, role: studentRole, name: student.name });
           return sendAuthenticatedJson(res, 200, {
             success: true,
             role: studentRole,
+            name: student.name,
             token,
             student: { name: student.name }
           }, token);
@@ -508,10 +509,11 @@ const server = http.createServer(async (req, res) => {
           createdAt: new Date()
         };
         await studentLogins.insertOne(studentLogin);
-        const token = generateToken({ username, role: 'Student' });
+        const token = generateToken({ username, role: 'Student', name: student.name });
         return sendAuthenticatedJson(res, 201, {
           success: true,
           role: 'Student',
+          name: student.name,
           token,
           student: { name: student.name }
         }, token);
@@ -885,7 +887,16 @@ const server = http.createServer(async (req, res) => {
   // Session info
   if (url.pathname === '/api/session') {
     const user = authenticateToken(req);
-    return sendJson(res, 200, { success: true, session: user || null });
+    if (!user) return sendJson(res, 200, { success: true, session: null });
+
+    let session = user;
+    if (!session.name && useMongo && mongoDb) {
+      const account = requireRole(session, 'Student')
+        ? await mongoDb.collection('student_logins').findOne({ username: session.username }, { projection: { name: 1 } })
+        : await mongoDb.collection('users').findOne({ username: session.username }, { projection: { name: 1 } });
+      if (account?.name) session = { ...session, name: account.name };
+    }
+    return sendJson(res, 200, { success: true, session });
   }
 
   if (url.pathname === '/api/logout' && req.method === 'POST') {
