@@ -138,13 +138,25 @@ function authenticateToken(req) {
     .split(';')
     .map((cookie) => cookie.trim())
     .find((cookie) => cookie.startsWith('ucc_session='));
-  const token = bearerToken || (cookieToken && decodeURIComponent(cookieToken.slice('ucc_session='.length)));
-  if (!token) return null;
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch {
-    return null;
+
+  const tokens = [];
+  if (bearerToken) tokens.push(bearerToken);
+  if (cookieToken) {
+    try {
+      tokens.push(decodeURIComponent(cookieToken.slice('ucc_session='.length)));
+    } catch {
+      // Ignore a malformed cookie and continue with the bearer token, if present.
+    }
   }
+
+  for (const token of tokens) {
+    try {
+      return jwt.verify(token, JWT_SECRET);
+    } catch {
+      // Try the next available credential, such as a valid session cookie.
+    }
+  }
+  return null;
 }
 
 function requireRole(user, role) {
