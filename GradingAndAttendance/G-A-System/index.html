@@ -426,10 +426,12 @@
         const dashboardNavItems = document.querySelectorAll('.nav-role-dashboard');
         const staffNavItems = document.querySelectorAll('.nav-role-staff');
         const studentNavItems = document.querySelectorAll('.nav-role-student');
+        const adminNavItems = document.querySelectorAll('.nav-admin');
 
         dashboardNavItems.forEach((item) => item.classList.toggle('hidden', isStudent));
         staffNavItems.forEach((item) => item.classList.toggle('hidden', isStudent));
         studentNavItems.forEach((item) => item.classList.toggle('hidden', !isStudent));
+        adminNavItems.forEach((item) => item.classList.toggle('hidden', normalizedRole !== 'program head'));
 
         staffDashboardContent.classList.toggle('hidden', isStudent);
         studentDashboardContent.classList.toggle('hidden', !isStudent);
