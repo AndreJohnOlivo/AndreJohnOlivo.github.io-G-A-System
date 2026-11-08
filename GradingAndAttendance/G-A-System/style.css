@@ -477,6 +477,43 @@ td select {
   padding: 24px;
 }
 
+.access-denied-shell {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at 15% 15%, rgba(216, 166, 58, 0.3), transparent 30%), linear-gradient(135deg, #0f4027 0%, #2f7048 55%, #d8a63a 100%);
+}
+
+.access-denied-card {
+  position: relative;
+  z-index: 1;
+  border: 0;
+  text-align: center;
+  animation: access-card-enter 420ms ease-out both;
+}
+
+.access-denied-card .eyebrow {
+  color: var(--gold-700);
+}
+
+.access-denied-mark {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 18px;
+  place-items: center;
+  border: 2px solid var(--gold-500);
+  border-radius: 50%;
+  color: var(--gold-700);
+  font-size: 1.8rem;
+  font-weight: 700;
+  background: #fff8e6;
+}
+
+@keyframes access-card-enter {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .auth-card {
   width: min(100%, 460px);
   padding: 30px;
