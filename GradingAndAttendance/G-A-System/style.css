@@ -30,6 +30,11 @@ body {
   display: none !important;
 }
 
+body.auth-checking #login-screen,
+body.auth-checking #dashboard-shell {
+  visibility: hidden;
+}
+
 h1, h2, h3, h4, h5, h6 {
   margin-top: 0;
   font-family: 'Playfair Display', Georgia, serif;
