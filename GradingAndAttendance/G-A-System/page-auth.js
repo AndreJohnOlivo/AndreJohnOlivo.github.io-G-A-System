@@ -13,8 +13,8 @@
         const render = () => {
             document.querySelectorAll('.app-shell').forEach((element) => { element.classList.add('hidden'); });
             const notice = document.createElement('main');
-            notice.className = 'auth-shell';
-            notice.innerHTML = `<div class="auth-card"><p class="eyebrow">UCC Academic Portal</p><h1>Access restricted</h1><p class="auth-intro">Your ${role || 'current'} account does not have permission to open this page.</p><a class="btn btn-primary" href="index.html">Return to Dashboard</a></div>`;
+            notice.className = 'auth-shell access-denied-shell';
+            notice.innerHTML = `<div class="auth-card access-denied-card"><div class="access-denied-mark" aria-hidden="true">!</div><p class="eyebrow">Restricted workspace</p><h1>Program Head access only</h1><p class="auth-intro">You are signed in as ${role || 'a different role'}. This area is reserved for managing student and faculty records.</p><a class="btn btn-primary" href="index.html">Return to Dashboard</a></div>`;
             document.body.appendChild(notice);
         };
         if (document.body) render();
