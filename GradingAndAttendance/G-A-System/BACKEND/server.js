@@ -329,14 +329,6 @@ function serveStaticFile(res, requestPath) {
   });
 }
 
-const protectedPages = {
-  '/attendance.html': ['Program Head', 'Faculty'],
-  '/grades.html': ['Program Head', 'Faculty'],
-  '/reports.html': ['Program Head', 'Faculty'],
-  '/students.html': ['Program Head'],
-  '/faculty.html': ['Program Head']
-};
-
 // Server
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -849,17 +841,6 @@ const server = http.createServer(async (req, res) => {
       'Set-Cookie': 'ucc_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'
     });
     return res.end();
-  }
-
-  if (protectedPages[url.pathname]) {
-    const user = authenticateToken(req);
-    if (!user) {
-      res.writeHead(302, { Location: '/' });
-      return res.end();
-    }
-    if (!protectedPages[url.pathname].some((role) => requireRole(user, role))) {
-      return sendJson(res, 403, { success: false, message: 'Forbidden' });
-    }
   }
 
   // Default: serve static
