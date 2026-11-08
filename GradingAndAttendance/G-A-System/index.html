@@ -524,13 +524,8 @@
         const message = params.get('message');
         const token = sessionStorage.getItem('uccAccessToken');
 
-        if (!token) {
-          showLogin(message);
-          return;
-        }
-
         try {
-          const response = await fetch('/api/session', { headers: getAuthHeaders() });
+          const response = await fetch('/api/session', { headers: getAuthHeaders(), credentials: 'same-origin' });
           const result = await response.json();
           if (response.ok && result.session) {
             sessionStorage.setItem('uccAccessRole', result.session.role);
