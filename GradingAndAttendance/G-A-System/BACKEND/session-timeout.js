@@ -29,6 +29,7 @@
     }
     sessionStorage.removeItem('uccAccessRole');
     sessionStorage.removeItem('uccAccessToken');
+    sessionStorage.removeItem('currentUserName');
     sessionStorage.removeItem('currentStudentName');
     window.location.replace(`index.html?message=${encodeURIComponent(message)}`);
   }
