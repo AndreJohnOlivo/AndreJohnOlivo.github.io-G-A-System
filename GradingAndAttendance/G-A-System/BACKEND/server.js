@@ -270,22 +270,23 @@ async function createAuditLog(user, action, target, previous, changes) {
 
 async function getStudentByIdentifier(identifier) {
   const searchStr = String(identifier || '').trim();
-  const searchNum = parseInt(searchStr, 10);
+  const searchNum = /^-?\d+$/.test(searchStr) ? Number(searchStr) : null;
+  const studentIdPattern = searchStr ? new RegExp(`^${escapeRegExp(searchStr)}$`, 'i') : null;
 
   const student = await mongoDb.collection('students').findOne({
     $or: [
       { _id: ObjectId.isValid(searchStr) ? new ObjectId(searchStr) : null },
-      { studentId: searchStr },
-      { studentId: isNaN(searchNum) ? null : searchNum }
+      { studentId: studentIdPattern },
+      { studentId: searchNum }
     ]
-  }); // <--- Closes findOne
+  });
 
   if (student && !student.name) {
     student.name = `${student.firstName} ${student.lastName}`.trim();
-  } // <--- Closes IF statement
+  }
 
   return student;
-} // <--- Closes the entire ASYNC FUNCTION
+}
 
 // Utility: send JSON
 function sendJson(res, statusCode, payload) {
