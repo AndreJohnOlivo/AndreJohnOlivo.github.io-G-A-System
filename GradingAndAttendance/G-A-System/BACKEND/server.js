@@ -453,7 +453,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (role === 'student') {
-        const academicStudent = await mongoDb.collection('students').findOne({ studentId });
+        const academicStudent = await getStudentByIdentifier(studentId);
         if (!academicStudent && !allowUnlinkedStudentRegistrationForTesting) {
           return sendJson(res, 404, { success: false, message: 'Student record not found. Registration requires an existing student record.' });
         }
