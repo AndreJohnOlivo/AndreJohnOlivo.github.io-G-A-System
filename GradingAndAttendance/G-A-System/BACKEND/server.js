@@ -7,7 +7,6 @@ const bcryptjs = require('bcryptjs');
 
 const port = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'development-secret-change-me';
-const PROGRAM_HEAD_PASSWORD = process.env.PROGRAM_HEAD_PASSWORD || 'nimfa.silla1';
 const allowUnlinkedStudentRegistrationForTesting =
   process.env.ALLOW_UNLINKED_STUDENT_REGISTRATION === 'true' &&
   process.env.NODE_ENV !== 'production';
@@ -28,19 +27,24 @@ const nimfaSillaAccount = {
 };
 
 async function seedProgramHeadAccount() {
-  const passwordHash = await bcryptjs.hash(PROGRAM_HEAD_PASSWORD, 12);
-  await mongoDb.collection('users').updateOne(
+  const users = mongoDb.collection('users');
+  const defaultPasswordHash = await bcryptjs.hash('nimfa.silla1', 12);
+
+  await users.updateOne(
     { username: nimfaSillaAccount.username },
     {
       $set: {
         name: nimfaSillaAccount.name,
-        role: nimfaSillaAccount.role,
-        password: passwordHash
+        role: nimfaSillaAccount.role
       },
-      $setOnInsert: { createdAt: new Date() }
+      $setOnInsert: {
+        password: defaultPasswordHash,
+        createdAt: new Date()
+      }
     },
     { upsert: true }
   );
+  console.log(`Program Head account ready: ${nimfaSillaAccount.username} (MongoDB password preserved)`);
 }
 
 async function copyAndRemove(sourceName, targetName, filter = {}) {
