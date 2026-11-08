@@ -275,7 +275,18 @@ async function getStudentByIdentifier(identifier) {
 
   const searchNum = /^-?\d+$/.test(searchStr) ? Number(searchStr) : null;
   const studentIdPattern = new RegExp(`^${escapeRegExp(searchStr)}$`, 'i');
-  const identifierFields = ['studentId', 'studentID', 'student_id', 'studentNumber'];
+  const identifierFields = [
+    'studentId',
+    'studentID',
+    'StudentID',
+    'student_id',
+    'studentNumber',
+    'studentNo',
+    'student_no',
+    'id',
+    'ID',
+    'Student ID'
+  ];
   const identifierFilters = identifierFields.map((field) => ({ [field]: studentIdPattern }));
   if (searchNum !== null) {
     identifierFilters.push(...identifierFields.map((field) => ({ [field]: searchNum })));
@@ -471,6 +482,11 @@ const server = http.createServer(async (req, res) => {
       if (role === 'student') {
         const academicStudent = await getStudentByIdentifier(studentId);
         if (!academicStudent && !allowUnlinkedStudentRegistrationForTesting) {
+          const studentCount = await mongoDb.collection('students').countDocuments();
+          console.warn(
+            `Student registration lookup failed for "${studentId}" in database "${mongoDb.databaseName}" `
+            + `(students collection: ${studentCount} record(s))`
+          );
           return sendJson(res, 404, { success: false, message: 'Student record not found. Registration requires an existing student record.' });
         }
         const existingLogin = await studentLogins.findOne({
