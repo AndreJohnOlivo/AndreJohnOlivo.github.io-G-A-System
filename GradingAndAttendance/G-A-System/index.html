@@ -438,12 +438,14 @@
         }
 
         if (studentWelcomeName) {
-          const studentName = sessionStorage.getItem('currentUserName') || sessionStorage.getItem('currentStudentName') || 'Welcome';
-          studentWelcomeName.textContent = `Welcome, ${studentName}`;
+          const storedName = sessionStorage.getItem('currentUserName') || sessionStorage.getItem('currentStudentName');
+          const studentName = storedName && storedName.toLowerCase() !== 'welcome' ? storedName : '';
+          studentWelcomeName.textContent = studentName ? `Welcome, ${studentName}` : 'Welcome';
         }
         if (staffWelcomeName) {
-          const userName = sessionStorage.getItem('currentUserName') || 'Welcome';
-          staffWelcomeName.textContent = `Welcome, ${userName}`;
+          const storedName = sessionStorage.getItem('currentUserName');
+          const userName = storedName && storedName.toLowerCase() !== 'welcome' ? storedName : '';
+          staffWelcomeName.textContent = userName ? `Welcome, ${userName}` : 'Welcome';
         }
 
         if (isStaffRole && !isStudent) {
@@ -544,8 +546,10 @@
           const result = await response.json();
           if (response.ok && result.session) {
             sessionStorage.setItem('uccAccessRole', result.session.role);
-            if (result.session.name) {
+            if (result.session.name && result.session.name.toLowerCase() !== 'welcome') {
               sessionStorage.setItem('currentUserName', result.session.name);
+            } else {
+              sessionStorage.removeItem('currentUserName');
             }
             if (params.get('access') === 'restricted') {
               showAccessDenied(result.session.role);
